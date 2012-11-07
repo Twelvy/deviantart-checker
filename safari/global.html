@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='utf-8' />
+		<title>deviantART Checker</title>
+		<script src="jquery-1.4.3.min.js"></script>
+		<script type="text/javascript" >
+		
+			// listener when settings change
+			safari.extension.settings.addEventListener("change", settingsChanged, false);
+			
+			//listener when extension is enabled the first time (at browser launch)
+			safari.application.addEventListener("validate", extensionLaunched, false);
+			
+			// click on icon
+			safari.application.addEventListener("command", commandClick, false);
+			
+			// timer
+			var updater = safari.extension.globalPage.contentWindow.setInterval( checkMessages, safari.extension.settings.getItem("updates") * 1000 );
+			
+			
+			var deviantartURL = "http://my.deviantart.com/messages/";
+			
+			
+			function checkMessages()
+			{
+				$.ajax({
+					url: deviantartURL,
+					success: function(data)
+					{
+						var notices = data.search(/view=notices/);
+						var deviations = data.search(/view=deviations/);
+						var deviantwatch = data.search(/view=deviantwatch/);
+						var feedback = data.search(/view=feedback/);
+						
+						var nbNotices = searchForNumber(data, notices);
+						var nbDeviations = searchForNumber(data, deviations);
+						var nbDeviantwatch = searchForNumber(data, deviantwatch);
+						var nbFeedback = searchForNumber(data, feedback);
+						
+						updateToolbarItem( nbNotices, nbDeviations, nbDeviantwatch, nbFeedback );
+					}
+				});
+			}
+			
+			function searchForNumber( pData, pOffset )
+			{
+				if (pOffset != -1)
+				{
+					var result = '';
+					var i = 0;
+					var count = 0;
+						
+					while (count < 3)
+					{
+						if (pData[pOffset+i] == '>'){count++;}
+						i++;
+					}
+					while ( pData[pOffset+i] != '<' )
+					{
+						result = result + pData[pOffset+i];
+						i++;
+					}
+					
+					return parseInt(result);
+				}
+				else
+				{
+					return 0;	
+				}
+			}
+			
+			function updateToolbarItem( notices_count, deviations_count, deviantwatch_count, feedback_count )
+			{
+				$.each(safari.extension.toolbarItems, function(i, v)
+				{
+					v.badge = notices_count + deviations_count + deviantwatch_count + feedback_count;
+					
+					var tooltip = "deviantART";
+					
+					if (notices_count !=0)
+					{
+						tooltip += "\n" + notices_count + " notice" + (notices_count > 1 ? "s": "");
+					}
+					if (deviations_count !=0)
+					{
+						tooltip += "\n" + deviations_count + " deviation" + (deviations_count > 1 ? "s": "");
+					}
+					if (deviantwatch_count !=0)
+					{
+						tooltip += "\n" + deviantwatch_count + " deviantWatch" + (deviantwatch_count > 1 ? "es": "");
+					}
+					if (feedback_count !=0)
+					{
+						tooltip += "\n" + feedback_count + " feedback" + (feedback_count > 1 ? "s": "");
+					}
+					
+					v.toolTip = tooltip;
+				});
+			}
+			
+			function settingsChanged(event)
+			{
+				if (event.key == "updates")
+				{
+					safari.extension.globalPage.contentWindow.clearInterval(updater);
+					updater = safari.extension.globalPage.contentWindow.setInterval( "checkMessages()", event.newValue * 1000);
+				}
+			}
+			
+			function extensionLaunched(event)
+			{
+				safari.application.removeEventListener("validate", extensionLaunched, false);
+				checkMessages();
+			}
+			
+			function commandClick(event)
+			{
+				if (event.command == "daNewTab" )
+				{
+				// check if DeviantART is open somewhere
+					for (i in safari.application.browserWindows)
+					{
+						for (j in safari.application.browserWindows[i].tabs)
+						{
+							if (safari.application.browserWindows[i].tabs[j].url && safari.application.browserWindows[i].tabs[j].url.indexOf(deviantartURL) == 0)
+							{
+								var browserWindow = safari.application.browserWindows[i];
+	
+								browserWindow.activate();
+								browserWindow.tabs[j].activate();
+								return;
+							}
+						}
+					}
+	
+					var newTab = safari.application.activeBrowserWindow.openTab();
+					newTab.url = deviantartURL;
+				}
+			}
+			
+		</script>
+	</head>
+</html>

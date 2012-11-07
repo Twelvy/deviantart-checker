@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='utf-8' />
+		<title>deviantART Checker</title>
+		<script src="jquery-1.4.3.min.js"></script>
+		<script type="text/javascript" >
+		
+			// click on icon
+			chrome.browserAction.onClicked.addListener(commandClick);
+			
+			// timer
+			var updateTime = localStorage["dAchecker_time"];
+			var updater;
+			if (!updateTime)
+			{
+				updateTime = 60000;
+				updater = window.setInterval("checkMessages()", updateTime);
+			}
+			else
+			{
+				updater = window.setInterval("checkMessages()", updateTime);
+			}
+			
+			//for notifications
+			var prevNotices = Math.max( localStorage["dAchecker_prevNotices"], 0);
+			var prevDeviations = Math.max( localStorage["dAchecker_prevDeviations"], 0);
+			var prevDeviantwatch = Math.max( localStorage["dAchecker_prevDeviantwatch"], 0);
+			var prevFeedbacks = Math.max( localStorage["dAchecker_prevFeedbacks"], 0);
+			
+			//cache a string
+			var deviantartURL = "http://my.deviantart.com/messages/";
+			
+			function checkMessages()
+			{
+				$.ajax({
+					url: deviantartURL,
+					success: function(data)
+					{
+						var notices = data.search(/view=notices/);
+						var deviations = data.search(/view=deviations/);
+						var deviantwatch = data.search(/view=deviantwatch/);
+						var feedbacks = data.search(/view=feedback/);
+						
+						var nbNotices = searchForNumber(data, notices);
+						var nbDeviations = searchForNumber(data, deviations);
+						var nbDeviantwatch = searchForNumber(data, deviantwatch);
+						var nbFeedbacks = searchForNumber(data, feedbacks);
+						
+						updateToolbarItem( nbNotices, nbDeviations, nbDeviantwatch, nbFeedbacks );
+					}
+				});
+			}
+			
+			function searchForNumber( pData, pOffset )
+			{
+				if (pOffset != -1)
+				{
+					var result = '';
+					var i = 0;
+					var count = 0;
+						
+					while (count < 3)
+					{
+						if (pData[pOffset+i] == '>'){count++;}
+						i++;
+					}
+					while ( pData[pOffset+i] != '<' )
+					{
+						result = result + pData[pOffset+i];
+						i++;
+					}
+					
+					return parseInt(result);
+				}
+				else
+				{
+					return 0;	
+				}
+			}
+			
+			function updateToolbarItem( notices_count, deviations_count, deviantwatch_count, feedbacks_count )
+			{
+				var allMessages = notices_count + deviations_count + deviantwatch_count + feedbacks_count;
+				var tooltip = "deviantART";
+				
+				if (allMessages != 0)
+				{
+					chrome.browserAction.setBadgeText({text:String(allMessages)});
+					
+					if (notices_count !=0)
+					{
+						tooltip += "\n" + notices_count + " notice" + (notices_count > 1 ? "s": "");
+					}
+					if (deviations_count !=0)
+					{
+						tooltip += "\n" + deviations_count + " deviation" + (deviations_count > 1 ? "s": "");
+					}
+					if (deviantwatch_count !=0)
+					{
+						tooltip += "\n" + deviantwatch_count + " deviantWatch" + (deviantwatch_count > 1 ? "es": "");
+					}
+					if (feedbacks_count !=0)
+					{
+						tooltip += "\n" + feedbacks_count + " feedback" + (feedbacks_count > 1 ? "s": "");
+					}
+				}
+				else
+				{
+					chrome.browserAction.setBadgeText({text:""});
+				}
+				
+				chrome.browserAction.setTitle({title:tooltip});
+				
+				if (useNotification != 0)
+				{
+					daNotify( notices_count, deviations_count, deviantwatch_count, feedbacks_count );
+				}
+				
+				// update values
+				prevNotices = notices_count;
+				prevDeviations = deviations_count;
+				prevDeviantwatch = deviantwatch_count;
+				prevFeedbacks = feedbacks_count;
+				
+				// store them
+				localStorage["dAchecker_prevNotices"] = prevNotices;
+				localStorage["dAchecker_prevDeviations"] = prevDeviations;
+				localStorage["dAchecker_prevDeviantwatch"] = prevDeviantwatch;
+				localStorage["dAchecker_prevFeedbacks"] = prevFeedbacks;
+			}
+			
+			function daNotify( notices_count, deviations_count, deviantwatch_count, feedbacks_count )
+			{
+				var showNotification = 0;
+				var bodyText = "";
+				
+				var delta = notices_count - prevNotices;
+				if (delta > 0)
+				{
+					showNotification = 1;
+					bodyText += "\n+" + delta + " notice" + (delta > 1 ? "s": "");
+				}
+				
+				delta = deviations_count - prevDeviations;
+				if (delta > 0)
+				{
+					showNotification = 1;
+					bodyText += "\n+" + delta + " deviation" + (delta > 1 ? "s": "");
+				}
+				
+				delta = deviantwatch_count - prevDeviantwatch;
+				if (delta > 0)
+				{
+					showNotification = 1;
+					bodyText += "\n+" + delta + " deviantwatch" + (delta > 1 ? "es": "");
+				}
+				
+				delta = feedbacks_count - prevFeedbacks;
+				if (delta > 0)
+				{
+					showNotification = 1;
+					bodyText += "\n+" + delta + " feedback" + (delta > 1 ? "s": "");
+				}
+				
+				if (showNotification != 0)
+				{
+					bodyText = bodyText.substr(1); //remove first \n
+					
+					var notification = webkitNotifications.createNotification(
+						'icon-48.png',  // icon url - can be relative
+						'New content on devianART!',  // notification title
+						bodyText);  // notification body text
+					notification.show();
+				}
+			}
+			
+			function updateOptions()
+			{
+				var updateTimeTemp = localStorage["dAchecker_time"];
+				if (updateTime != updateTimeTemp)
+				{
+					updateTime = updateTimeTemp;
+					window.clearInterval("checkMessages()", updater);
+					updater = window.setInterval("checkMessages()", updateTime);
+				}
+				
+				useNotification = localStorage["dAchecker_notif"];
+			}
+			
+			function commandClick(tab)
+			{
+				var createTab = true;
+				chrome.tabs.getAllInWindow(null, function(tabs){
+					for ( tabId in tabs )
+					{
+						if (tabs[tabId].url && tabs[tabId].url.indexOf(deviantartURL) == 0)
+						{
+							chrome.tabs.update(tabs[tabId].id, {selected:true});
+							createTab = false;
+						}
+					}
+					
+					if (createTab)
+					{
+						chrome.tabs.create({url:deviantartURL});
+					}
+				});
+			}
+			
+		</script>
+	</head>
+</html>

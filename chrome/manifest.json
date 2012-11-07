@@ -1,0 +1,19 @@
+{
+	"name": "deviantART checker",
+	"version": "1.1",
+	"description": "Checks inbox on your deviantART account",
+	"icons": {  "48": "icon-48.png",
+				"128": "icon-128.png" },
+	"browser_action": {
+		"default_icon": "toolbar.png",
+		"default_title": "deviantART Checker"
+	},
+	"background_page": "daCheck.html",
+	"permissions": [
+		"tabs",
+		"http://my.deviantart.com/*",
+		"notifications"
+	],
+	"options_page": "daCheck_options.html",
+	"update_url": "http://aurelien.serandour.free.fr/deviantART-checker/updatesCRX.xml"
+}

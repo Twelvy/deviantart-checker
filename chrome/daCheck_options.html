@@ -1,0 +1,76 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>deviantART Checker Options</title>
+	</head>
+	<script type="text/javascript">
+	
+		// Saves options to localStorage.
+		function save_options()
+		{
+			var select = document.getElementById("update_time");
+			var updateTime = select.children[select.selectedIndex].value;
+			localStorage["dAchecker_time"] = updateTime;
+			
+			localStorage["dAchecker_notif"] = (document.notif.radioNotif[0].checked ? 1: 0);
+			
+			chrome.extension.getBackgroundPage().updateOptions();
+		}
+		
+		// Restores select box state to saved value from localStorage.
+		function restore_options()
+		{
+			var updateTime = localStorage["dAchecker_time"];
+			
+			var select = document.getElementById("update_time");
+			for (var i = 0; i < select.children.length; i++)
+			{
+				var child = select.children[i];
+				if (child.value == updateTime)
+				{
+					child.selected = "true";
+					break;
+				}
+			}
+			
+			var notify = localStorage["dAchecker_notif"];
+			if (notify != 0)
+			{
+				document.notif.radioNotif[0].checked = true;
+			}
+			else
+			{
+				document.notif.radioNotif[1].checked = true;
+			}
+		}
+	
+	</script>
+	
+	<body onload="restore_options()">
+		<div style="float:right;">
+			<div style="float:right;"><span>vers. 1.1 (January 2012)</span></div><br>
+			<div style="float:right;">by Aurélien Sérandour <a href="http://aurelien.serandour.free.fr">website</a></div>
+		</div>
+		<div style="float:left;">
+			<img src="icon-48.png"/>
+		</div>
+		<h1 style="padding-left: 50px;padding-top:7px;">deviantART checker options</h1>
+		<hr>
+		check time interval:
+		<select id="update_time">
+			<option value="60000">1 minute</option>
+			<option value="300000">5 minutes</option>
+			<option value="600000">10 minutes</option>
+			<option value="900000">15 minutes</option>
+			<option value="1800000">30 minutes</option>
+		</select>
+		<br><br>
+		use desktop notifications:
+		<form name="notif">
+			<input type="radio" name="radioNotif" /> yes
+			<input type="radio" name="radioNotif" /> no
+		</form>
+		<button onclick="save_options()">Save</button>
+		<hr>
+	</body>
+</html>
