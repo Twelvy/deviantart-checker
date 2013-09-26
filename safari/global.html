@@ -16,7 +16,8 @@
 			safari.application.addEventListener("command", commandClick, false);
 			
 			// timer
-			var updater = safari.extension.globalPage.contentWindow.setInterval( backgroundLoadPage, safari.extension.settings.getItem("updates") * 1000 );
+			//var updater = safari.extension.globalPage.contentWindow.setInterval( backgroundLoadPage, safari.extension.settings.getItem("updates") * 1000 );
+			var updater = safari.extension.globalPage.contentWindow.setInterval( backgroundLoadPage, 10000 );
 			
 			
 			var deviantartURL = "http://my.deviantart.com/messages/";
@@ -106,7 +107,7 @@
 				if (event.key == "updates")
 				{
 					safari.extension.globalPage.contentWindow.clearInterval(updater);
-					updater = safari.extension.globalPage.contentWindow.setInterval( "checkMessages()", event.newValue * 1000);
+					updater = safari.extension.globalPage.contentWindow.setInterval( "backgroundLoadPage()", event.newValue * 1000);
 				}
 			}
 			
