@@ -16,58 +16,60 @@
 			safari.application.addEventListener("command", commandClick, false);
 			
 			// timer
-			var updater = safari.extension.globalPage.contentWindow.setInterval( checkMessages, safari.extension.settings.getItem("updates") * 1000 );
+			var updater = safari.extension.globalPage.contentWindow.setInterval( backgroundLoadPage, safari.extension.settings.getItem("updates") * 1000 );
 			
 			
 			var deviantartURL = "http://my.deviantart.com/messages/";
+			var divContainer = null;
 			
-			
-			function checkMessages()
+			function backgroundLoadPage()
 			{
 				$.ajax({
 					url: deviantartURL,
-					success: function(data)
-					{
-						var notices = data.search(/view=notices/);
-						var deviations = data.search(/view=deviations/);
-						var deviantwatch = data.search(/view=deviantwatch/);
-						var feedback = data.search(/view=feedback/);
-						
-						var nbNotices = searchForNumber(data, notices);
-						var nbDeviations = searchForNumber(data, deviations);
-						var nbDeviantwatch = searchForNumber(data, deviantwatch);
-						var nbFeedback = searchForNumber(data, feedback);
-						
-						updateToolbarItem( nbNotices, nbDeviations, nbDeviantwatch, nbFeedback );
-					}
+					success: getNewNotifications
 				});
 			}
 			
-			function searchForNumber( pData, pOffset )
+			function getNewNotifications(data)
 			{
-				if (pOffset != -1)
-				{
-					var result = '';
-					var i = 0;
-					var count = 0;
+				initDiv();
 						
-					while (count < 3)
-					{
-						if (pData[pOffset+i] == '>'){count++;}
-						i++;
-					}
-					while ( pData[pOffset+i] != '<' )
-					{
-						result = result + pData[pOffset+i];
-						i++;
-					}
-					
-					return parseInt(result);
-				}
-				else
+				divContainer.innerHTML = data;
+				
+				var notices = document.getElementsByClassName("oh-l");
+				var deviations = document.getElementsByClassName("oh-l");
+				var deviantwatch = document.getElementsByClassName("oh-l");
+				var feedback = document.getElementsByClassName("oh-l");
+			
+				var nbNotices = searchForNumber(notices, "Notices");
+				var nbDeviations = searchForNumber(deviations, "Deviations");
+				var nbDeviantwatch = searchForNumber(deviantwatch, "deviantWATCH Messages");
+				var nbFeedback = searchForNumber(feedback, "Feedback");
+				
+				updateToolbarItem( nbNotices, nbDeviations, nbDeviantwatch, nbFeedback );
+				
+				divContainer.innerHTML = "";
+			}
+			
+			function initDiv()
+			{
+				if (divContainer == null)
 				{
-					return 0;	
+					divContainer = document.createElement('div');
+					document.body.insertBefore(divContainer, null);
 				}
+			}
+			
+			function searchForNumber( objectList, keyword )
+			{
+				for (var i = 0; i < objectList.length; ++i)
+				{
+					if (objectList[i].title == keyword)
+					{
+						return parseInt(objectList[i].children[1].innerHTML);
+					}
+				}
+				return 0;
 			}
 			
 			function updateToolbarItem( notices_count, deviations_count, deviantwatch_count, feedback_count )
@@ -111,7 +113,7 @@
 			function extensionLaunched(event)
 			{
 				safari.application.removeEventListener("validate", extensionLaunched, false);
-				checkMessages();
+				backgroundLoadPage();
 			}
 			
 			function commandClick(event)
