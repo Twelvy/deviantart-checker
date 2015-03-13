@@ -1,0 +1,1 @@
+Safari and Google Chrome extension that checks the number of messages on your deviantART account
